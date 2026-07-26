@@ -1,8 +1,33 @@
-
-# Playwright
+# Node.js dependencies
 node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
+npm-debug.log*
+yarn-debug.log*
+
+# Playwright Test Results & Reports
+test-results/
+playwright-report/
+blob-report/
+all-blob-reports/
+
+# Screenshots & Visual Snapshot Baselines (Keep Local Only)
+screenshots/
+*-snapshots/
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Playwright Auth & Cache
+playwright/.cache/
+playwright/.auth/
+
+# Environment & Build Outputs
+dist/
+.env
+.env.local
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
