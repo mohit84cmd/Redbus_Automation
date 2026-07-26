@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 import { HomePage }     from '../pages/HomePage';
 import { logger }         from '../utils/helpers';
 
-test.describe('📱 Mobile Responsive Validation – RedBus', () => {
+test.describe('📱 Mobile Viewport & Touch Interaction Tests @mobile @responsive', () => {
 
   test('TC-MOB-001 | Check search form adaptation on mobile view', async ({ page }) => {
     logger.info('Verifying mobile search form layout...');

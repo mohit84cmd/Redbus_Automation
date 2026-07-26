@@ -5,6 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
+    "test:smoke": "npx playwright test --grep \"@smoke\"",
+    "test:sanity": "npx playwright test --grep \"@sanity\"",
+    "test:regression": "npx playwright test --grep \"@regression\"",
+    "test:api": "npx playwright test --grep \"@api\"",
+    "test:mobile": "npx playwright test --grep \"@mobile\"",
+    "test:perf": "npx playwright test --grep \"@perf\"",
     "test:parallel": "npx playwright test --workers=4",
     "test:shard1": "npx playwright test --shard=1/3",
     "test:shard2": "npx playwright test --shard=2/3",

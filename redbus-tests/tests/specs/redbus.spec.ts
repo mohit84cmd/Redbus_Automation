@@ -8,9 +8,10 @@ import { test, expect } from '../fixtures/baseTest';
 import { logger }         from '../utils/helpers';
 import { BUS_ROUTES, getISODate }    from '../utils/testData';
 
-test.describe('🚌  RedBus Functional ticket booking flow', () => {
+test.describe('🚌  RedBus Functional ticket booking flow @regression @e2e', () => {
 
-  test('TC-FUN-001 | Complete end-to-end bus booking flow (search, filter, sort, seat selection)', async ({ redBusApp, apiClient }) => {
+  test('TC-FUN-001 | Complete end-to-end bus booking flow (search, filter, sort, seat selection) @smoke @sanity', async ({ redBusApp, apiClient }) => {
+
     logger.info(`Starting E2E Bus Booking Flow: ${BUS_ROUTES.valid.source} to ${BUS_ROUTES.valid.destination}`);
     
     // 1. Perform homepage search

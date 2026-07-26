@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 import { HomePage }     from '../pages/HomePage';
 import { logger }         from '../utils/helpers';
 
-test.describe('⚡ Performance & Timing Metrics', () => {
+test.describe('⚡ Page Load Performance & Web Vitals @perf @performance', () => {
 
   test('TC-PERF-001 | Collect homepage load times and slow API calls', async ({ page }) => {
     logger.info('Running performance validation...');

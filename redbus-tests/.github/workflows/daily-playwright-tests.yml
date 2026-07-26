@@ -1,0 +1,140 @@
+name: 🕒 Daily Playwright Automation & Tagged Execution Pipeline
+
+on:
+  # ───────────────────────────────────────────────────────────────────────────
+  # 1. SCHEDULED DAILY EXECUTION (Cron Schedule: 02:00 UTC / 07:30 AM IST daily)
+  # ───────────────────────────────────────────────────────────────────────────
+  schedule:
+    - cron: '0 2 * * *'
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 2. MANUAL WORKFLOW DISPATCH (Tag Selection & Shard Tuning)
+  # ───────────────────────────────────────────────────────────────────────────
+  workflow_dispatch:
+    inputs:
+      test_tag:
+        description: 'Select test tag filter (@smoke, @sanity, @regression, @api, @mobile, @perf, all)'
+        required: true
+        default: '@smoke'
+        type: choice
+        options:
+          - '@smoke'
+          - '@sanity'
+          - '@regression'
+          - '@api'
+          - '@mobile'
+          - '@perf'
+          - 'all'
+      browser:
+        description: 'Target Browser Environment'
+        required: true
+        default: 'chromium'
+        type: choice
+        options:
+          - 'chromium'
+          - 'firefox'
+          - 'webkit'
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 3. CODE PUSH & PULL REQUEST TRIGGERS
+  # ───────────────────────────────────────────────────────────────────────────
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # STAGE 1: SHARDED TEST EXECUTION (3 Parallel Worker Nodes)
+  # ───────────────────────────────────────────────────────────────────────────
+  run-tagged-tests:
+    name: Run Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }} (${{ github.event.inputs.test_tag || '@smoke' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: 'redbus-tests/package-lock.json'
+
+      - name: Install Project Dependencies
+        run: |
+          cd redbus-tests
+          npm ci
+
+      - name: Install Playwright Browsers with OS Dependencies
+        run: |
+          cd redbus-tests
+          npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
+
+      - name: Execute Tagged Tests on Shard Node
+        env:
+          CI: 'true'
+          TAG_FILTER: ${{ github.event.inputs.test_tag || '@smoke' }}
+        run: |
+          cd redbus-tests
+          if [ "$TAG_FILTER" = "all" ]; then
+            npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+          else
+            npx playwright test --grep "$TAG_FILTER" --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+          fi
+
+      - name: Upload Shard Blob Report Artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-reports-shard-${{ matrix.shardIndex }}
+          path: redbus-tests/blob-report/
+          retention-days: 1
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # STAGE 2: REPORT MERGING & HTML ARTIFACT PUBLISHING
+  # ───────────────────────────────────────────────────────────────────────────
+  merge-and-publish-report:
+    name: Merge Shard Blob Reports into Unified HTML Dashboard
+    if: ${{ !cancelled() }}
+    needs: [run-tagged-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Project Dependencies
+        run: |
+          cd redbus-tests
+          npm ci
+
+      - name: Download Shard Blob Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: redbus-tests/all-blob-reports
+          pattern: blob-reports-shard-*
+          merge-multiple: true
+
+      - name: Merge Blob Reports into Unified HTML & JSON Report
+        run: |
+          cd redbus-tests
+          npx playwright merge-reports ./all-blob-reports --reporter=html,json
+
+      - name: Upload Final HTML Test Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-playwright-html-report
+          path: redbus-tests/playwright-report/
+          retention-days: 14

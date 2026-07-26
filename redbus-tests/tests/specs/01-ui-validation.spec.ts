@@ -8,7 +8,8 @@ import { HomePage }     from '../pages/HomePage';
 import { captureScreenshot, assertTitleContains, logger } from '../utils/helpers';
 import { BASE_URL }     from '../utils/testData';
 
-test.describe('🖥️  UI Validation – RedBus Homepage', () => {
+test.describe('🖥️  UI Validation – RedBus Homepage @sanity @ui', () => {
+
   let homePage: HomePage;
 
   test.beforeEach(async ({ page }) => {
