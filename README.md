@@ -127,6 +127,27 @@ npx playwright show-report
 
 ---
 
+## 🩺 Healer Agent & Diagnostic CLI Tool
+
+This workspace is equipped with custom self-healing instructions and a diagnostic utility script to debug and repair failing test locators:
+
+### 1. Healer Agent Custom Workspace Skill
+Under [.agents/skills/healer/SKILL.md](file:///Users/mohit/Gemini_Anitigravity/.agents/skills/healer/SKILL.md), there is a workspace-scoped AI agent skill. When a test failure occurs, the AI agent uses this skill's custom directives to:
+- Automatically inspect the generated Playwright results.
+- Locate the exact line of code that triggered the timeout or failure.
+- Formulate a healed/newer resilient selector (e.g. converting a broken alphanumeric class selector to a semantic `getByRole` or `getByText` locator).
+
+### 2. Diagnostic CLI Tool
+A custom command-line tool [redbus-tests/heal-tests.ts](file:///Users/mohit/Gemini_Anitigravity/redbus-tests/heal-tests.ts) is provided to parse test results and generate immediate diagnostic suggestions.
+
+To run the analyzer, run the following command from the `redbus-tests/` directory:
+```bash
+npm run heal
+```
+This script will parse `test-results/results.json`, locate failures, display the code context snippet with a line pointer, and suggest targeted instructions to resolve the failure (e.g., updating visual snapshots or using semantic locators).
+
+---
+
 ## ⚙️ CI/CD Integration
 
 The repository comes configured with a GitHub Actions workflow in `.github/workflows/playwright.yml`. On every push and pull request to the `main` or `master` branches, the workflow will:

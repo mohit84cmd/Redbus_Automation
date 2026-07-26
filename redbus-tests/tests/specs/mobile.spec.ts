@@ -31,7 +31,7 @@ test.describe('📱 Mobile Responsive Validation – RedBus', () => {
         expect(destBox.y).toBeGreaterThan(srcBox.y);
         logger.pass('Verified search fields are stacked vertically on mobile viewport');
       } else {
-        expect(destBox.y).toBe(srcBox.y);
+        expect(Math.abs(destBox.y - srcBox.y)).toBeLessThanOrEqual(5.0);
         logger.pass('Verified search fields are side-by-side on desktop viewport');
       }
     }

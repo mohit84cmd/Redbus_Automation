@@ -148,28 +148,45 @@ export class NetworkHelper {
       bodyContains,
     } = opts;
 
-    const deadline   = Date.now() + timeout;
-    const beforeCount = (this.captured.get(key) ?? []).length;   // snapshot
+    const pattern = API_PATTERNS[key];
+    
+    const response = await this.page.waitForResponse(
+      async (res) => {
+        const url = res.url();
+        if (!pattern.test(url)) return false;
+        if (res.status() < minStatus || res.status() > maxStatus) return false;
+        
+        if (bodyContains) {
+          try {
+            const body = await res.json();
+            return JSON.stringify(body).includes(bodyContains);
+          } catch {
+            return false;
+          }
+        }
+        return true;
+      },
+      { timeout }
+    );
 
-    while (Date.now() < deadline) {
-      const all   = this.captured.get(key) ?? [];
-      const fresh = all.slice(beforeCount);   // only new responses after call
-
-      for (const r of fresh) {
-        if (r.status < minStatus || r.status > maxStatus) continue;
-        if (bodyContains && !JSON.stringify(r.body).includes(bodyContains)) continue;
-        console.log(`✅ [XHR] ${key} → ${r.status} ${r.url} (${r.durationMs}ms)`);
-        return r;
-      }
-      await this.page.waitForTimeout(200);
+    const contentType = response.headers()['content-type'] ?? '';
+    let body: any = null;
+    if (contentType.includes('json') || contentType.includes('javascript')) {
+      try {
+        body = await response.json();
+      } catch {}
     }
 
-    // Timeout — throw descriptive error
-    throw new Error(
-      `⏱️  waitForAPI('${key}') timed out after ${timeout}ms.\n` +
-      `   Pattern: ${API_PATTERNS[key]}\n` +
-      `   Captured so far: ${(this.captured.get(key) ?? []).length} response(s)`,
-    );
+    const entry: ApiResponse = {
+      url: response.url(),
+      status: response.status(),
+      body,
+      durationMs: 0,
+      timestamp: Date.now()
+    };
+    
+    console.log(`✅ [XHR] ${key} → ${entry.status} ${entry.url}`);
+    return entry;
   }
 
   // ===========================================================================

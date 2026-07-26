@@ -153,28 +153,42 @@ export class BasePage {
       bodyContains,
     } = opts;
 
-    const deadline = Date.now() + timeout;
-    // Snapshot count before waiting
-    const beforeCount = sinceCount !== undefined ? sinceCount : (this.capturedResponses.get(patternKey) ?? []).length;
-
-    while (Date.now() < deadline) {
-      const responses = this.capturedResponses.get(patternKey) ?? [];
-      const fresh     = responses.slice(beforeCount);       // only NEW responses
-
-      for (const r of fresh) {
-        if (r.status < minStatusCode || r.status > maxStatusCode) continue;
+    const pattern = API_PATTERNS[patternKey];
+    
+    const response = await this.page.waitForResponse(
+      async (res) => {
+        const url = res.url();
+        if (!pattern.test(url)) return false;
+        if (res.status() < minStatusCode || res.status() > maxStatusCode) return false;
+        
         if (bodyContains) {
-          const text = JSON.stringify(r.body);
-          if (!text.includes(bodyContains)) continue;
+          try {
+            const body = await res.json();
+            return JSON.stringify(body).includes(bodyContains);
+          } catch {
+            return false;
+          }
         }
-        return r;
-      }
-      await this.page.waitForTimeout(200);
-    }
-    throw new Error(
-      `⏱️  waitForApiResponse('${patternKey}') timed out after ${timeout}ms. ` +
-      `URL pattern: ${API_PATTERNS[patternKey]}`,
+        return true;
+      },
+      { timeout }
     );
+
+    const contentType = response.headers()['content-type'] ?? '';
+    let body: any = null;
+    if (contentType.includes('json') || contentType.includes('javascript')) {
+      try {
+        body = await response.json();
+      } catch {}
+    }
+
+    return {
+      url: response.url(),
+      status: response.status(),
+      body,
+      timestamp: Date.now(),
+      durationMs: 0
+    };
   }
 
   // ===========================================================================
@@ -187,7 +201,7 @@ export class BasePage {
         timeout: Math.min(timeout, 4000),
         bodyContains: undefined,
       }, sinceCount);
-    } catch (e) {
+    } catch (e: any) {
       console.warn(`⚠️ Suggestions API wait timed out: ${e.message}. Falling back to DOM check for "${inputValue}".`);
       const domSel = `.suggestion-item, [class*="suggestion-item"], li[class*="suggest"], ul.sc-dnqmqq li`;
       await this.page.waitForSelector(domSel, {
@@ -243,7 +257,7 @@ export class BasePage {
     selector:  string,
     value:     string,
     timeout  = 10_000,
-  ): Promise<CapturedResponse> {
+  ): Promise<CapturedResponse | null> {
     const el = this.page.locator(selector).first();
     await el.click({ clickCount: 3 });
     await el.fill(value);

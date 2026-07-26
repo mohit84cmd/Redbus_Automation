@@ -1,20 +1,27 @@
 // =============================================================================
 // tests/fixtures/baseTest.ts
-// Custom Playwright fixture — extends `test` with pre-initialized page objects
+// Custom Playwright fixture — extends `test` with pre-initialized page and app objects
 // =============================================================================
 
 import { test as base, Page } from '@playwright/test';
+import { RedBusApplication } from '../pages/RedBusApplication';
+import { ApiClient }         from '../utils/apiClient';
 import { HomePage }           from '../pages/HomePage';
 import { BusResultsPage }     from '../pages/BusResultsPage';
 import { HotelPage }          from '../pages/HotelPage';
 import { TrainPage }          from '../pages/TrainPage';
+import { BrowserFactory }    from '../utils/browserFactory';
 
 // ─── Fixture Type ─────────────────────────────────────────────────────────────
 
 export type RedBusFixtures = {
-  /** Pre-initialized HomePage (homepage + search widget) */
+  /** Unified RedBusApplication orchestrator */
+  redBusApp:      RedBusApplication;
+  /** Pre-initialized ApiClient for backend validation */
+  apiClient:      ApiClient;
+  /** Pre-initialized HomePage */
   homePage:       HomePage;
-  /** Pre-initialized BusResultsPage (list, filters, seat selection) */
+  /** Pre-initialized BusResultsPage */
   busResultsPage: BusResultsPage;
   /** Pre-initialized HotelPage */
   hotelPage:      HotelPage;
@@ -23,31 +30,50 @@ export type RedBusFixtures = {
 };
 
 // =============================================================================
-// Custom `test` export — import this in every spec instead of @playwright/test
+// Custom `test` export — extends base playwright test
 // =============================================================================
 
 export const test = base.extend<RedBusFixtures>({
 
+  // ── Browser Override via Factory ───────────────────────────────────────────
+  browser: async ({ browserName }, use) => {
+    const browserInstance = await BrowserFactory.getBrowser(
+      browserName as 'chromium' | 'firefox' | 'webkit'
+    );
+    await use(browserInstance);
+    await browserInstance.close();
+  },
+
+  // ── RedBusApplication Orchestrator ─────────────────────────────────────────
+  redBusApp: async ({ page, request }, use) => {
+    const app = new RedBusApplication(page, request);
+    await use(app);
+  },
+
+  // ── ApiClient ──────────────────────────────────────────────────────────────
+  apiClient: async ({ redBusApp }, use) => {
+    await use(redBusApp.apiClient);
+  },
+
   // ── HomePage ───────────────────────────────────────────────────────────────
-  homePage: async ({ page }, use) => {
-    const hp = new HomePage(page);
-    await hp.navigate();
-    await use(hp);
+  homePage: async ({ redBusApp }, use) => {
+    await redBusApp.homePage.navigate();
+    await use(redBusApp.homePage);
   },
 
   // ── BusResultsPage ─────────────────────────────────────────────────────────
-  busResultsPage: async ({ page }, use) => {
-    await use(new BusResultsPage(page));
+  busResultsPage: async ({ redBusApp }, use) => {
+    await use(redBusApp.busResultsPage);
   },
 
   // ── HotelPage ──────────────────────────────────────────────────────────────
-  hotelPage: async ({ page }, use) => {
-    await use(new HotelPage(page));
+  hotelPage: async ({ redBusApp }, use) => {
+    await use(redBusApp.hotelPage);
   },
 
   // ── TrainPage ──────────────────────────────────────────────────────────────
-  trainPage: async ({ page }, use) => {
-    await use(new TrainPage(page));
+  trainPage: async ({ redBusApp }, use) => {
+    await use(redBusApp.trainPage);
   },
 });
 

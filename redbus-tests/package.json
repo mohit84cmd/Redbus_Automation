@@ -1,15 +1,25 @@
 {
-  "name": "gemini_anitigravity",
+  "name": "redbus-playwright-automation",
   "version": "1.0.0",
+  "description": "RedBus Automation Suite with Playwright, TypeScript, and Auto-Healing Capabilities",
   "main": "index.js",
-  "scripts": {},
-  "keywords": [],
+  "scripts": {
+    "test": "npx playwright test",
+    "test:parallel": "npx playwright test --workers=4",
+    "test:shard1": "npx playwright test --shard=1/3",
+    "test:shard2": "npx playwright test --shard=2/3",
+    "test:shard3": "npx playwright test --shard=3/3",
+    "report:merge": "npx playwright merge-reports ./all-blob-reports --reporter=html",
+    "report:show": "npx playwright show-report",
+    "heal": "npx ts-node heal-tests.ts"
+  },
+  "keywords": ["playwright", "testing", "redbus", "sharding", "auto-healing"],
   "author": "",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
     "@playwright/test": "^1.61.0",
     "@types/node": "^25.9.2",
     "typescript": "^5.5.3"
   }
 }
+

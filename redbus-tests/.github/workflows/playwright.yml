@@ -1,27 +1,79 @@
-name: Playwright Tests
+name: Playwright Tests CI/CD Pipeline
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
 jobs:
-  test:
+  # ───────────────────────────────────────────────────────────────────────────
+  # STAGE 1: SHARDING & PARALLEL EXECUTION (3 Matrix Nodes)
+  # ───────────────────────────────────────────────────────────────────────────
+  test-sharded:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3]
+        shardTotal: [3]
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright Tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        env:
+          CI: 'true'
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+
+      - name: Upload Blob Report Node Artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-reports-shard-${{ matrix.shardIndex }}
+          path: blob-report/
+          retention-days: 1
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # STAGE 2: REPORT MERGING & UNIFIED ARTIFACT PUBLISHING
+  # ───────────────────────────────────────────────────────────────────────────
+  merge-reports:
+    if: ${{ !cancelled() }}
+    needs: [test-sharded]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download all Blob Reports from Sharded Matrix
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-reports-shard-*
+          merge-multiple: true
+
+      - name: Merge Blob Reports into Unified HTML & JSON Report
+        run: npx playwright merge-reports ./all-blob-reports --reporter=html,json
+
+      - name: Upload Unified HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-report-final
+          path: playwright-report/
+          retention-days: 14
