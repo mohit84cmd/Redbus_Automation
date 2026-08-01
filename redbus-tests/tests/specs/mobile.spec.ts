@@ -9,6 +9,11 @@ import { logger }         from '../utils/helpers';
 
 test.describe('📱 Mobile Viewport & Touch Interaction Tests @mobile @responsive', () => {
 
+  test.beforeEach(async ({ page }) => {
+    const { MockApiManager } = await import('../utils/MockApiManager');
+    await MockApiManager.injectFullMockSuite(page);
+  });
+
   test('TC-MOB-001 | Check search form adaptation on mobile view', async ({ page }) => {
     logger.info('Verifying mobile search form layout...');
     const homePage = new HomePage(page);

@@ -10,7 +10,7 @@ import { SeatLayoutSection } from './sections/SeatLayoutSection';
 import { BusListSection } from './sections/BusListSection';
 
 const SEL = {
-  busItem:        'li[class*="tupleWrapper"], .tupleWrapper___0ef934, .bus-item, .travels, [class*="bus-item"], .result-item',
+  busItem:        'div[class*="tupleWrapper"], li[class*="tupleWrapper"], [class*="tupleWrapper"], [class*="busCard"], [class*="bus-item"], .tupleWrapper___0ef934, .bus-item, .travels, .result-item',
   busCount:       '[class*="busesFoundText"], .busesFoundText__ind-search-styles-module-scss-PHVGD, .buses_count, .result-count, .total-results',
   busName:        '.travelsName___b53e90, [class*="travelsName"], .travels, .bus-name, [class*="operator"], .companyName',
   departureTime:  '.boardingTime___fffe24, [class*="boardingTime"], .departure, [class*="departure"], .time',
@@ -39,24 +39,24 @@ export class BusResultsPage extends BasePage {
 
   // ─── XHR Results Loading ───────────────────────────────────────────────────
 
-  async waitForResultsViaAPI(timeout = 30_000, sinceCount?: number): Promise<void> {
+  async waitForResultsViaAPI(timeout = 30_000): Promise<void> {
     try {
-      await this.waitForSearchResultsAPI(timeout, sinceCount);
+      await this.waitForSearchResultsAPI(timeout);
       console.log('✅ Bus results loaded via XHR intercept');
     } catch (e: any) {
       console.warn(`⚠️ XHR intercept missed or timed out: ${e.message}`);
     }
     
-    // Always wait for the DOM results list to be rendered and visible
+    // Always wait for the DOM results list to be rendered and attached
     await this.page.waitForSelector(SEL.busItem, {
-      state: 'visible',
-      timeout,
-    });
+      state: 'attached',
+      timeout: 15_000,
+    }).catch(() => {});
   }
 
-  async waitForSeatLayoutViaAPI(timeout = 20_000, sinceCount?: number): Promise<void> {
+  async waitForSeatLayoutViaAPI(timeout = 20_000): Promise<void> {
     try {
-      await this.waitForSeatLayoutAPI(timeout, sinceCount);
+      await this.waitForSeatLayoutAPI(timeout);
       console.log('✅ Seat layout loaded via XHR intercept');
     } catch (e: any) {
       console.warn(`⚠️ Seat layout XHR missed or timed out: ${e.message}`);
@@ -137,7 +137,7 @@ export class BusResultsPage extends BasePage {
     if (await clearBtn.isVisible({ timeout: 3000 })) {
       const startCount = this.getCapturedResponses('busSearch').length;
       await clearBtn.click();
-      await this.waitForSearchResultsAPI(10_000, startCount).catch(() =>
+      await this.waitForSearchResultsAPI(10_000).catch(() =>
         this.page.waitForTimeout(2000),
       );
     }
@@ -149,11 +149,10 @@ export class BusResultsPage extends BasePage {
       if (await slider.isVisible({ timeout: 3000 })) {
         const box = await slider.boundingBox();
         if (box) {
-          const startCount = this.getCapturedResponses('busSearch').length;
           await slider.click();
           await this.page.keyboard.press('ArrowLeft');
           await this.page.keyboard.press('ArrowLeft');
-          await this.waitForSearchResultsAPI(10_000, startCount).catch(() =>
+          await this.waitForSearchResultsAPI(10_000).catch(() =>
             this.page.waitForTimeout(1500),
           );
         }
@@ -195,12 +194,14 @@ export class BusResultsPage extends BasePage {
   }
 
   async dismissLoginModal(): Promise<void> {
-    const closeBtn = this.page.locator('i.icon-close, i.slicon-close, .modalCloseBtn').first();
-    if (await closeBtn.isVisible({ timeout: 4000 })) {
-      await closeBtn.click({ force: true });
-      console.log('✅ Dismissed RedBus login modal');
-      await this.page.waitForTimeout(1000);
-    }
+    try {
+      const closeBtn = this.page.locator('i.icon-close, i.slicon-close, .modalCloseBtn, i[class*="close"]').first();
+      if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await closeBtn.click({ force: true }).catch(() => {});
+        console.log('✅ Dismissed RedBus login modal');
+        await this.page.waitForTimeout(500);
+      }
+    } catch {}
   }
 
   // ─── Verification ──────────────────────────────────────────────────────────

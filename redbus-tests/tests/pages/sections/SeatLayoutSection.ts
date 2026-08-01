@@ -33,11 +33,8 @@ export class SeatLayoutSection extends BasePage {
         console.log(`👉 Attempting bus #${i + 1} View seats click...`);
         
         try {
-          await viewSeatsBtn.scrollIntoViewIfNeeded();
-          // Offset scroll up by 150px to ensure the button is not hidden under sticky headers
-          await this.page.evaluate(() => window.scrollBy(0, -150));
-          await this.page.waitForTimeout(300);
-          await viewSeatsBtn.click({ timeout: 5000 });
+          await viewSeatsBtn.scrollIntoViewIfNeeded().catch(() => {});
+          await viewSeatsBtn.click({ force: true, timeout: 4000 });
         } catch (e) {
           console.warn(`⚠️ Click failed on bus #${i + 1}: ${e instanceof Error ? e.message : e}`);
           continue; // Try next bus
@@ -45,17 +42,17 @@ export class SeatLayoutSection extends BasePage {
         
         // Wait to check if a login modal popped up
         const closeBtn = this.page.locator(SEL.loginCloseBtn).first();
-        if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        if (await closeBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
           console.log(`⚠️ Bus #${i + 1} prompted login modal. Dismissing and skipping...`);
           await closeBtn.click({ force: true }).catch(() => {});
-          await this.page.waitForTimeout(800);
+          await this.page.waitForTimeout(500);
           continue; // Try next bus
         }
         
         // Wait to see if the seat layout DOM appeared
         const opened = await this.page.waitForSelector(SEL.seatLayout, {
           state: 'visible',
-          timeout: 4000,
+          timeout: 3000,
         }).then(() => true).catch(() => false);
         
         if (opened) {

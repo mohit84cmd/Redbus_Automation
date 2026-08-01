@@ -62,7 +62,6 @@ export class TrainPage extends BasePage {
 
   async selectFirstSuggestion(): Promise<void> {
     await this.page.locator(SEL.suggestionList).first().click();
-    await this.page.waitForTimeout(300);
   }
 
   async searchTrains(from: string, to: string): Promise<void> {
@@ -75,8 +74,9 @@ export class TrainPage extends BasePage {
     // Date
     try {
       await this.page.locator(SEL.dateInput).first().click();
-      await this.page.waitForTimeout(500);
-      await this.page.locator('.DayPicker-Day:not(.DayPicker-Day--disabled)').first().click();
+      const day = this.page.locator('.DayPicker-Day:not(.DayPicker-Day--disabled)').first();
+      await day.waitFor({ state: 'visible', timeout: 3_000 });
+      await day.click();
     } catch { /* pre-filled */ }
 
     await this.page.locator(SEL.searchBtn).first().click();

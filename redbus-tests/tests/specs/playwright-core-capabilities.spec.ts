@@ -8,7 +8,7 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
-await page.goto('https://www.redbus.in/');
+
 const MOCK_HTML = `
 <!DOCTYPE html>
 <html>

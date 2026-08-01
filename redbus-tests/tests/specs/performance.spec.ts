@@ -4,20 +4,20 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test';
-import { HomePage }     from '../pages/HomePage';
-import { logger }         from '../utils/helpers';
+import { HomePage } from '../pages/HomePage';
+import { logger } from '../utils/helpers';
 
 test.describe('⚡ Page Load Performance & Web Vitals @perf @performance', () => {
 
   test('TC-PERF-001 | Collect homepage load times and slow API calls', async ({ page }) => {
     logger.info('Running performance validation...');
     const homePage = new HomePage(page);
-    
+
     // Time the load
     const startTime = Date.now();
     await homePage.navigate();
     const loadDuration = Date.now() - startTime;
-    
+
     logger.pass(`Page load took ${loadDuration}ms`);
     expect(loadDuration).toBeLessThan(30000); // Should be loaded under 30s
 

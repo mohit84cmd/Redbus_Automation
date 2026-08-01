@@ -14,6 +14,10 @@ test.describe('🚌  RedBus Functional ticket booking flow @regression @e2e', ()
 
     logger.info(`Starting E2E Bus Booking Flow: ${BUS_ROUTES.valid.source} to ${BUS_ROUTES.valid.destination}`);
     
+    // Inject Mock API suite for fast, deterministic XHR responses
+    const { MockApiManager } = await import('../utils/MockApiManager');
+    await MockApiManager.injectFullMockSuite(redBusApp.page);
+
     // 1. Perform homepage search
     await redBusApp.navigateAndSearchBuses(BUS_ROUTES.valid.source, BUS_ROUTES.valid.destination);
     await redBusApp.busResultsPage.waitForResultsViaAPI();

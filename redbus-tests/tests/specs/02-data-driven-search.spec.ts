@@ -8,7 +8,7 @@ import { MockApiManager } from '../utils/MockApiManager';
 import { BusDataBuilder } from '../utils/BusDataBuilder';
 import { StateInjector }  from '../utils/StateInjector';
 
-test.describe('📊  Data Injection & Parameterized Data-Driven Tests', () => {
+test.describe('📊  Data Injection & Parameterized Data-Driven Tests @api', () => {
 
   const testDatasets = [
     { source: 'Mumbai', destination: 'Pune', busType: 'AC Sleeper' },

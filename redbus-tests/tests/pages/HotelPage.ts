@@ -60,9 +60,8 @@ export class HotelPage extends BasePage {
   async setCheckInDate(): Promise<void> {
     try {
       await this.page.locator(SEL.checkInInput).first().click();
-      await this.page.waitForTimeout(500);
-      // Pick a day that's about 3 days from now
       const days = this.page.locator('.DayPicker-Day:not(.DayPicker-Day--disabled), td.rdtDay:not(.rdtDisabled)');
+      await days.first().waitFor({ state: 'visible', timeout: 3_000 });
       await days.nth(2).click();
     } catch { /* pre-filled */ }
   }
@@ -70,8 +69,8 @@ export class HotelPage extends BasePage {
   async setCheckOutDate(): Promise<void> {
     try {
       await this.page.locator(SEL.checkOutInput).first().click();
-      await this.page.waitForTimeout(500);
       const days = this.page.locator('.DayPicker-Day:not(.DayPicker-Day--disabled), td.rdtDay:not(.rdtDisabled)');
+      await days.first().waitFor({ state: 'visible', timeout: 3_000 });
       await days.nth(4).click();
     } catch { /* pre-filled */ }
   }

@@ -2,7 +2,7 @@ import { Page } from '@playwright/test';
 import { BasePage } from '../BasePage';
 
 const SEL = {
-  busItem:        'li[class*="tupleWrapper"], .tupleWrapper___0ef934, .bus-item, .travels, [class*="bus-item"], .result-item',
+  busItem:        'div[class*="tupleWrapper"], li[class*="tupleWrapper"], [class*="tupleWrapper"], [class*="busCard"], [class*="bus-item"], .tupleWrapper___0ef934, .bus-item, .travels, .result-item',
   busCount:       '[class*="busesFoundText"], .busesFoundText__ind-search-styles-module-scss-PHVGD, .buses_count, .result-count, .total-results',
   busName:        '.travelsName___b53e90, [class*="travelsName"], .travels, .bus-name, [class*="operator"], .companyName',
   price:          '.finalFare___63a23a, [class*="finalFare"], .fare, .seat-fare',

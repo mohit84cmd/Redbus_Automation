@@ -33,7 +33,7 @@ const MOCK_VISUAL_HTML = `<!DOCTYPE html>
 
 test.describe('👁️  Visual Integrity & Regression', () => {
 
-  test('TC-VIS-001 | Homepage visual snapshot validation', async ({ page }) => {
+  test('TC-VIS-001 | Homepage visual snapshot validation', async ({ page }, testInfo) => {
     logger.info('Performing visual regression validation...');
     await page.setContent(MOCK_VISUAL_HTML);
 
@@ -42,7 +42,7 @@ test.describe('👁️  Visual Integrity & Regression', () => {
     
     if (await searchWidget.isVisible({ timeout: 5000 }).catch(() => false)) {
       logger.info('Taking visual snapshot of search component...');
-      await expect(searchWidget).toHaveScreenshot('search-widget-snapshot.png', {
+      await expect(searchWidget).toHaveScreenshot(`search-widget-${testInfo.project.name}.png`, {
         maxDiffPixelRatio: 0.3,
         animations: 'disabled',
       });
@@ -50,7 +50,7 @@ test.describe('👁️  Visual Integrity & Regression', () => {
     } else {
       // Fallback: take full page screenshot and test
       logger.info('Taking fallback full-page visual snapshot...');
-      await expect(page).toHaveScreenshot('full-page-snapshot.png', {
+      await expect(page).toHaveScreenshot(`full-page-${testInfo.project.name}.png`, {
         maxDiffPixelRatio: 0.3,
         animations: 'disabled',
       });

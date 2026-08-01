@@ -17,6 +17,6 @@
     "declaration":                   true,
     "sourceMap":                     true
   },
-  "include":  ["tests/**/*.ts", "playwright.config.ts"],
+  "include":  ["tests/**/*.ts", "playwright.config.ts", "heal-tests.ts"],
   "exclude":  ["node_modules", "dist", "playwright-report", "test-results"]
 }

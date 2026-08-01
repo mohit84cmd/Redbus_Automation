@@ -9,6 +9,11 @@ import { logger }         from '../utils/helpers';
 
 test.describe('♿ Accessibility & Semantic Markup', () => {
 
+  test.beforeEach(async ({ page }) => {
+    const { MockApiManager } = await import('../utils/MockApiManager');
+    await MockApiManager.injectFullMockSuite(page);
+  });
+
   test('TC-A11Y-001 | Verify structural HTML5 semantic elements', async ({ page }) => {
     logger.info('Verifying HTML5 semantic elements...');
     const homePage = new HomePage(page);

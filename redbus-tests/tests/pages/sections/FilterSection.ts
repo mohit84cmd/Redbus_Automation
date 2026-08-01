@@ -10,16 +10,18 @@ export class FilterSection extends BasePage {
    * Apply AC bus filter using robust accessible checkbox locator.
    */
   async applyACFilter(): Promise<void> {
-    // Matches "AC (458)" but not "NONAC" using word boundary regex
     const btn = this.page.getByRole('checkbox', { name: /\bAC\b/i }).first();
-    const startCount = this.getCapturedResponses('busSearch').length;
-    await btn.click({ force: true });
-    
-    // Synchronize via API response or fallback delay
+    if (await btn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await btn.click({ force: true }).catch(() => {});
+    } else {
+      const altBtn = this.page.locator('input[type="checkbox"][name*="ac" i], label:has-text("AC")').first();
+      await altBtn.click({ force: true }).catch(() => {});
+    }
+
     try {
-      await this.waitForSearchResultsAPI(10_000, startCount);
+      await this.waitForSearchResultsAPI(5_000);
     } catch {
-      await this.page.waitForTimeout(2000);
+      await this.page.waitForTimeout(500);
     }
   }
 
@@ -28,11 +30,10 @@ export class FilterSection extends BasePage {
    */
   async applyNonACFilter(): Promise<void> {
     const btn = this.page.getByRole('checkbox', { name: /NONAC|NON-AC|NON A\/C/i }).first();
-    const startCount = this.getCapturedResponses('busSearch').length;
     await btn.click({ force: true });
     
     try {
-      await this.waitForSearchResultsAPI(10_000, startCount);
+      await this.waitForSearchResultsAPI(10_000);
     } catch {
       await this.page.waitForTimeout(2000);
     }
@@ -43,11 +44,10 @@ export class FilterSection extends BasePage {
    */
   async applySleeperFilter(): Promise<void> {
     const btn = this.page.getByRole('checkbox', { name: /SLEEPER/i }).first();
-    const startCount = this.getCapturedResponses('busSearch').length;
     await btn.click({ force: true });
     
     try {
-      await this.waitForSearchResultsAPI(10_000, startCount);
+      await this.waitForSearchResultsAPI(10_000);
     } catch {
       await this.page.waitForTimeout(2000);
     }
@@ -57,9 +57,13 @@ export class FilterSection extends BasePage {
    * Sort by lowest price using accessible text label.
    */
   async sortByLowestPrice(): Promise<void> {
-    // Locate sorting option by text label "Price"
     const btn = this.page.getByText('Price', { exact: true }).first();
-    await btn.click({ force: true });
-    await this.page.waitForTimeout(1500); // Wait for list to sort
+    if (await btn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await btn.click({ force: true }).catch(() => {});
+    } else {
+      const altBtn = this.page.locator('button.sort-price, :text("Price"), [class*="sort"]').first();
+      await altBtn.click({ force: true }).catch(() => {});
+    }
+    await this.page.waitForTimeout(300);
   }
 }

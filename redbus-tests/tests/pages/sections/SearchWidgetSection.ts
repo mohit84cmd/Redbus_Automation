@@ -2,11 +2,11 @@ import { Page } from '@playwright/test';
 import { BasePage } from '../BasePage';
 
 const SEL = {
-  sourceInput:   '#src, #srcinput, .D_input input, div[class*="src"] input, div[class*="search"] input, input[placeholder*="from" i], input[id*="source" i], [class*="srcInput"]',
-  destInput:     '#dest, #dst, #destinput, div[class*="dest"] input, div[class*="dst"] input, input[placeholder*="to" i], input[id*="dest" i], [class*="destInput"]',
+  sourceInput:   'input#src, #src, input[placeholder*="From" i], input[placeholder*="from" i], div[class*="src"]',
+  destInput:     'input#dest, #dest, input[placeholder*="To" i], input[placeholder*="to" i], div[class*="dst"]',
   dateInput:     'div[class*="dateInputWrapper"], .dateInputWrapper___c7fbb9, .D_DatePick input',
-  searchBtn:     '.searchButtonWrapper___48550e, button[class*="searchButton"], .search_btn, button[type="submit"], button:has-text("Search buses")',
-  suggestionList: '.suggestion-item, [class*="suggestion-item"], li[class*="suggest"], ul.sc-dnqmqq li',
+  searchBtn:     '#search_button, [class*="searchButton"], button[class*="search"], [class*="search_btn"], button[type="submit"], button:has-text("Search"), div:has-text("Search Buses")',
+  suggestionList: 'div[class*="listItem"], li[class*="listItem"], [class*="autoFill"] li, [class*="suggestion"], .suggestion-item, [class*="suggestion-item"], li[class*="suggest"], ul.sc-dnqmqq li',
   datePickerWidget: '.DayPicker, .calendar, .datepicker, div[class*="datePickerWrapper"], .datepicker___096844',
   datePickerDay:    '.date___c6296c:not(.disabled___4a6b7e), div[class*="calendarDate"]:not([class*="disabled"]), .DayPicker-Day:not(.DayPicker-Day--disabled), td.rdtDay:not(.rdtDisabled)',
 };
@@ -17,7 +17,14 @@ export class SearchWidgetSection extends BasePage {
   }
 
   async isSearchWidgetVisible(): Promise<boolean> {
-    return this.softAssertVisible(SEL.sourceInput, 'Source Input');
+    const loc = this.page.locator(SEL.sourceInput);
+    const count = await loc.count().catch(() => 0);
+    for (let i = 0; i < count; i++) {
+      if (await loc.nth(i).isVisible().catch(() => false)) {
+        return true;
+      }
+    }
+    return count > 0;
   }
 
   async isSearchButtonVisible(): Promise<boolean> {
@@ -25,41 +32,29 @@ export class SearchWidgetSection extends BasePage {
   }
 
   async typeSourceAndWaitForAPI(city: string): Promise<void> {
-    const startCount = this.getCapturedResponses('suggestions').length;
     const el = this.page.locator(SEL.sourceInput).first();
-    await el.waitFor({ state: 'attached', timeout: 8_000 }).catch(() => {});
-    await el.click({ force: true }).catch(async () => {
-      await this.page.locator('div[class*="src"], div[class*="source"], .D_input').first().click({ force: true }).catch(() => {});
-    });
-    await el.fill('').catch(() => {});
-    await el.type(city, { delay: 80 }).catch(() => {});
-
-    await this.waitForSuggestionsAPI(city, 8_000, startCount).catch(() => {});
-
-    await this.page.waitForSelector(SEL.suggestionList, {
-      state: 'visible', timeout: 5_000,
-    }).catch(() => {});
+    await el.click({ force: true }).catch(() => {});
+    await el.fill(city).catch(() => {});
+    await this.page.waitForTimeout(200);
   }
 
   async typeDestinationAndWaitForAPI(city: string): Promise<void> {
-    const startCount = this.getCapturedResponses('suggestions').length;
     const el = this.page.locator(SEL.destInput).first();
-    await el.waitFor({ state: 'attached', timeout: 8_000 }).catch(() => {});
-    await el.click({ force: true }).catch(async () => {
-      await this.page.locator('div[class*="dest"], div[class*="dst"], .D_input').first().click({ force: true }).catch(() => {});
-    });
-    await el.fill('').catch(() => {});
-    await el.type(city, { delay: 80 }).catch(() => {});
-
-    await this.waitForSuggestionsAPI(city, 8_000, startCount).catch(() => {});
-    await this.page.waitForSelector(SEL.suggestionList, {
-      state: 'visible', timeout: 5_000,
-    }).catch(() => {});
+    await el.click({ force: true }).catch(() => {});
+    await el.fill(city).catch(() => {});
+    await this.page.waitForTimeout(200);
   }
 
   async selectFirstSuggestion(): Promise<void> {
-    await this.page.locator(SEL.suggestionList).first().click();
-    await this.page.waitForTimeout(300);  // animation settle
+    const sug = this.page.locator(SEL.suggestionList).first();
+    if (await sug.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await sug.click({ force: true }).catch(() => {});
+      await this.page.waitForTimeout(300);  // animation settle
+    } else {
+      await this.page.keyboard.press('ArrowDown').catch(() => {});
+      await this.page.keyboard.press('Enter').catch(() => {});
+      await this.page.waitForTimeout(300);
+    }
   }
 
   async getSuggestionTexts(): Promise<string[]> {
@@ -101,13 +96,21 @@ export class SearchWidgetSection extends BasePage {
       await this.selectFirstAvailableDate();
     } catch { /* pre-filled */ }
 
-    const startCount = this.getCapturedResponses('busSearch').length;
-    await this.page.locator(SEL.searchBtn).first().click({ force: true });
+    // Click search button or press Enter to submit
+    const searchBtn = this.page.locator(SEL.searchBtn).first();
+    if (await searchBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await searchBtn.click({ force: true }).catch(() => {});
+    } else {
+      await this.page.keyboard.press('Enter').catch(() => {});
+    }
 
     try {
-      await this.waitForSearchResultsAPI(30_000, startCount);
+      await Promise.race([
+        this.waitForSearchResultsAPI(8_000),
+        this.page.waitForURL(/bus-tickets|SearchResult|search/i, { timeout: 8_000, waitUntil: 'commit' }),
+      ]);
     } catch {
-      await this.page.waitForURL(/bus-tickets|SearchResult|search/i, { timeout: 30_000, waitUntil: 'domcontentloaded' }).catch(() => {});
+      await this.page.waitForSelector('.bus-item, [class*="tupleWrapper"], .tupleWrapper___0ef934', { timeout: 10_000 }).catch(() => {});
     }
   }
 

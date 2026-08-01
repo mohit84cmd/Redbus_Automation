@@ -47,6 +47,12 @@ const API_PATTERNS: Record<string, RegExp> = {
 };
 
 // =============================================================================
+// ─── Module-scoped Page Interception Store (Type-safe Singleton) ─────────────
+const interceptedPages   = new WeakSet<Page>();
+const pageResponseStores = new WeakMap<Page, Map<string, CapturedResponse[]>>();
+const pageTimingStores   = new WeakMap<Page, Map<string, number>>();
+const pageMockStores     = new WeakMap<Page, Map<string, unknown>>();
+
 export class BasePage {
   protected readonly page: Page;
 
@@ -61,6 +67,19 @@ export class BasePage {
 
   constructor(page: Page) {
     this.page = page;
+
+    if (interceptedPages.has(page)) {
+      this.capturedResponses = pageResponseStores.get(page)!;
+      this.requestTimings    = pageTimingStores.get(page)!;
+      this.activeMocks       = pageMockStores.get(page)!;
+      return;
+    }
+
+    interceptedPages.add(page);
+    pageResponseStores.set(page, this.capturedResponses);
+    pageTimingStores.set(page, this.requestTimings);
+    pageMockStores.set(page, this.activeMocks);
+
     this._initNetworkInterception();
   }
 
@@ -82,7 +101,9 @@ export class BasePage {
       const startTime = this.requestTimings.get(url) ?? Date.now();
       const duration  = Date.now() - startTime;
 
-      if (res.status() >= 400) this.failedRequests++;
+      if (res.status() >= 400) {
+        this.failedRequests++;
+      }
 
       // Only capture JSON-like API responses
       const contentType = res.headers()['content-type'] ?? '';
@@ -113,7 +134,8 @@ export class BasePage {
     this.page.route('**/*', async (route: Route) => {
       const url = route.request().url();
       for (const [key, mockBody] of this.activeMocks) {
-        if (API_PATTERNS[key]?.test(url)) {
+        const pattern = API_PATTERNS[key];
+        if (pattern && pattern.test(url)) {
           await route.fulfill({
             status:      200,
             contentType: 'application/json',
@@ -134,17 +156,11 @@ export class BasePage {
    * PRIMARY XHR WRAPPER
    *
    * Waits until at least one response matching `patternKey` has been captured
-   * AFTER this call is made.  Polls the internal store every 200 ms.
-   *
-   * Usage (replaces DOM-selector waiting):
-   *   // Before: await this.page.waitForSelector('ul.sc-dnqmqq li', { timeout: 10000 });
-   *   // After:
-   *   await this.waitForApiResponse('suggestions', { timeout: 10000 });
+   * AFTER this call is made.
    */
   async waitForApiResponse(
     patternKey: keyof typeof API_PATTERNS,
     opts: WaitForApiOptions = {},
-    sinceCount?: number,
   ): Promise<CapturedResponse> {
     const {
       timeout       = 30_000,
@@ -195,12 +211,12 @@ export class BasePage {
   // PUBLIC: Domain-specific XHR Wrappers
   // ===========================================================================
 
-  async waitForSuggestionsAPI(inputValue: string, timeout = 10_000, sinceCount?: number): Promise<CapturedResponse | null> {
+  async waitForSuggestionsAPI(inputValue: string, timeout = 10_000): Promise<CapturedResponse | null> {
     try {
       return await this.waitForApiResponse('suggestions', {
         timeout: Math.min(timeout, 4000),
         bodyContains: undefined,
-      }, sinceCount);
+      });
     } catch (e: any) {
       console.warn(`⚠️ Suggestions API wait timed out: ${e.message}. Falling back to DOM check for "${inputValue}".`);
       const domSel = `.suggestion-item, [class*="suggestion-item"], li[class*="suggest"], ul.sc-dnqmqq li`;
@@ -214,34 +230,30 @@ export class BasePage {
 
   /**
    * Wait for the bus search results API.
-   *
-   * Replaces: await this.page.waitForSelector('.bus-item', { timeout: 30000 });
    */
-  async waitForSearchResultsAPI(timeout = 30_000, sinceCount?: number): Promise<CapturedResponse> {
-    return this.waitForApiResponse('busSearch', { timeout }, sinceCount);
+  async waitForSearchResultsAPI(timeout = 30_000): Promise<CapturedResponse> {
+    return this.waitForApiResponse('busSearch', { timeout });
   }
 
   /**
    * Wait for the seat-layout API after clicking "View Seats".
-   *
-   * Replaces: await this.page.waitForSelector('.seat-map-container', { timeout: 15000 });
    */
-  async waitForSeatLayoutAPI(timeout = 15_000, sinceCount?: number): Promise<CapturedResponse> {
-    return this.waitForApiResponse('seatLayout', { timeout }, sinceCount);
+  async waitForSeatLayoutAPI(timeout = 15_000): Promise<CapturedResponse> {
+    return this.waitForApiResponse('seatLayout', { timeout });
   }
 
   /**
    * Wait for hotel search results API.
    */
-  async waitForHotelResultsAPI(timeout = 30_000, sinceCount?: number): Promise<CapturedResponse> {
-    return this.waitForApiResponse('hotelSearch', { timeout }, sinceCount);
+  async waitForHotelResultsAPI(timeout = 30_000): Promise<CapturedResponse> {
+    return this.waitForApiResponse('hotelSearch', { timeout });
   }
 
   /**
    * Wait for RedRail / train search API.
    */
-  async waitForTrainResultsAPI(timeout = 30_000, sinceCount?: number): Promise<CapturedResponse> {
-    return this.waitForApiResponse('trainSearch', { timeout }, sinceCount);
+  async waitForTrainResultsAPI(timeout = 30_000): Promise<CapturedResponse> {
+    return this.waitForApiResponse('trainSearch', { timeout });
   }
 
   // ===========================================================================
@@ -401,7 +413,7 @@ export class BasePage {
       await this.page.goto(path, { waitUntil: 'commit', timeout: 8_000 });
     } catch (err) {
       console.warn(`⚠️ goto attempt 1 failed (${err instanceof Error ? err.message : err}), retrying...`);
-      await this.page.goto(path, { waitUntil: 'commit', timeout: 5_000 }).catch(() => {});
+      await this.page.goto(path, { waitUntil: 'commit', timeout: 8_000 }).catch(() => {});
     }
   }
 

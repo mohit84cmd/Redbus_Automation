@@ -13,6 +13,9 @@ jobs:
   test-sharded:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: redbus-tests
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: blob-reports-shard-${{ matrix.shardIndex }}
-          path: blob-report/
+          path: redbus-tests/blob-report/
           retention-days: 1
 
   # ───────────────────────────────────────────────────────────────────────────
@@ -51,6 +54,9 @@ jobs:
     if: ${{ !cancelled() }}
     needs: [test-sharded]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: redbus-tests
     steps:
       - uses: actions/checkout@v4
 

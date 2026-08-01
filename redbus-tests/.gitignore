@@ -9,13 +9,12 @@ playwright-report/
 blob-report/
 all-blob-reports/
 
-# Screenshots & Visual Snapshot Baselines (Keep Local Only)
+# Screenshots & Debug Artifacts (Keep Local Only)
 screenshots/
-*-snapshots/
 *.png
-*.jpg
-*.jpeg
-*.webp
+!tests/**/
+!tests/**/*-snapshots/
+!tests/**/*-snapshots/*.png
 
 # Playwright Auth & Cache
 playwright/.cache/

@@ -51,6 +51,9 @@ jobs:
     name: Run Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }} (${{ github.event.inputs.test_tag || '@smoke' }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: redbus-tests
     strategy:
       fail-fast: false
       matrix:
@@ -69,21 +72,16 @@ jobs:
           cache-dependency-path: 'redbus-tests/package-lock.json'
 
       - name: Install Project Dependencies
-        run: |
-          cd redbus-tests
-          npm ci
+        run: npm ci
 
       - name: Install Playwright Browsers with OS Dependencies
-        run: |
-          cd redbus-tests
-          npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
+        run: npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
 
       - name: Execute Tagged Tests on Shard Node
         env:
           CI: 'true'
           TAG_FILTER: ${{ github.event.inputs.test_tag || '@smoke' }}
         run: |
-          cd redbus-tests
           if [ "$TAG_FILTER" = "all" ]; then
             npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
           else
@@ -106,6 +104,9 @@ jobs:
     if: ${{ !cancelled() }}
     needs: [run-tagged-tests]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: redbus-tests
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -116,25 +117,21 @@ jobs:
           node-version: 18
 
       - name: Install Project Dependencies
-        run: |
-          cd redbus-tests
-          npm ci
+        run: npm ci
 
       - name: Download Shard Blob Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: redbus-tests/all-blob-reports
+          path: all-blob-reports
           pattern: blob-reports-shard-*
           merge-multiple: true
 
       - name: Merge Blob Reports into Unified HTML & JSON Report
-        run: |
-          cd redbus-tests
-          npx playwright merge-reports ./all-blob-reports --reporter=html,json
+        run: npx playwright merge-reports ./all-blob-reports --reporter=html,json
 
       - name: Upload Final HTML Test Report
         uses: actions/upload-artifact@v4
         with:
           name: daily-playwright-html-report
-          path: redbus-tests/playwright-report/
+          path: playwright-report/
           retention-days: 14
