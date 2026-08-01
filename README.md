@@ -117,6 +117,41 @@ npx playwright show-report
 
 ---
 
+## 🐳 Running Tests with Docker
+
+You can run tests inside an isolated Docker container without installing local Node.js or browser binaries.
+
+### Build Docker Image
+```bash
+npm run docker:build
+# or
+./run-docker.sh build
+```
+
+### Run All Tests in Docker
+```bash
+npm run docker:test
+# or
+./run-docker.sh test
+```
+
+### Run Smoke Tests in Docker
+```bash
+npm run docker:test:smoke
+```
+
+### Run AI Healer Engine in Docker
+```bash
+npm run docker:heal
+```
+
+### Run using Docker Compose
+```bash
+npm run docker:compose
+```
+
+---
+
 ## 💡 Key Features of the Framework
 
 1. **Robust XHR & Network Synchronization:** Uses custom API monitors (in `BasePage.ts` and `networkHelper.ts`) to wait for critical asynchronous network requests to complete before interacting with search results, avoiding flaky sleep loops.

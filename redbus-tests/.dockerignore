@@ -1,0 +1,9 @@
+node_modules/
+playwright-report/
+test-results/
+screenshots/
+all-blob-reports/
+.git/
+.gitignore
+.env
+*.log

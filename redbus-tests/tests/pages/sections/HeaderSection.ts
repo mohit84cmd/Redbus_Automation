@@ -6,7 +6,7 @@ const SEL = {
   navBus:     'a[href*="bus"], .rb-nav a:has-text("Bus")',
   navHotels:  'a[href*="hotel" i], li:has-text("Hotels") a, .rb-nav a:has-text("Hotel")',
   navTrain:   'a[href*="rail" i], a[href*="train" i], .rb-nav a:has-text("Rail")',
-  accountBtn: 'button:has-text("Account"), [aria-label="Account"], .icon-account',
+  accountBtn: 'button:has-text("Account"), [aria-label="Account"], .icon-account, #account_dd, .login-btn',
   loginBtn:   'span:has-text("Sign up"), button:has-text("Sign up"), button:has-text("Login"), .login-btn',
 };
 

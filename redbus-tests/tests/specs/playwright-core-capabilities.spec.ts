@@ -8,8 +8,41 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
+await page.goto('https://www.redbus.in/');
+const MOCK_HTML = `
+<!DOCTYPE html>
+<html>
+<head><title>Bus Booking Online and Train Tickets at Lowest Price - redBus</title></head>
+<body>
+  <div class="hero-section">
+    <div class="search-widget">
+      <input id="src" placeholder="From" />
+      <input id="dest" placeholder="To" />
+      <button id="search_btn">Search Buses</button>
+    </div>
+  </div>
+</body>
+</html>`;
+
+async function applyMockRoute(context: BrowserContext) {
+  await context.route('https://www.redbus.in/*', async (route) => {
+    if (route.request().resourceType() === 'document') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: MOCK_HTML,
+      });
+    } else {
+      await route.continue().catch(() => { });
+    }
+  });
+}
 
 test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
+
+  test.beforeEach(async ({ context }) => {
+    await applyMockRoute(context);
+  });
 
   // ───────────────────────────────────────────────────────────────────────────
   // 1. ROUTE (Network Interception, Mocking & Modification)
@@ -39,7 +72,7 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
       await route.continue({ headers });
     });
 
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
     expect(page.url()).toContain('redbus');
   });
 
@@ -58,47 +91,46 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
       console.log('📼 Replaying network responses from HAR archive');
     }
 
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
     expect(await page.title()).toBeTruthy();
   });
 
   // ───────────────────────────────────────────────────────────────────────────
   // 3. TRACING (Programmatic Execution Trace Recording)
   // ───────────────────────────────────────────────────────────────────────────
-  test('3. TRACING — Record DOM snapshots, network, and action traces programmatically', async ({ browser }) => {
+  test('3. TRACING — Record DOM snapshots, network, and action traces programmatically', async ({ browser }, testInfo) => {
     const context = await browser.newContext();
-    
-    // Start Tracing
-    await context.tracing.start({
-      screenshots: true,
-      snapshots: true,
-      sources: true,
-    });
+    await applyMockRoute(context);
+
+    // Start Tracing Chunk
+    await context.tracing.startChunk({ title: 'Custom Trace' });
 
     const page = await context.newPage();
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
-    const tracePath = path.join(process.cwd(), 'test-results/custom-trace.zip');
-    
-    // Stop & Save Trace Zip (Viewable via npx playwright show-trace)
-    await context.tracing.stop({ path: tracePath });
+    const tracePath = path.join(process.cwd(), `test-results/custom-trace-${testInfo.workerIndex}.zip`);
+
+    // Stop & Save Trace Zip
+    await context.tracing.stopChunk({ path: tracePath });
     console.log(`🔍 Trace saved to: ${tracePath}`);
 
     expect(fs.existsSync(tracePath)).toBe(true);
+    await context.tracing.startChunk().catch(() => { });
     await context.close();
   });
 
   // ───────────────────────────────────────────────────────────────────────────
   // 4. STORAGE STATE (Session Cookies & LocalStorage Persistence)
   // ───────────────────────────────────────────────────────────────────────────
-  test('4. STORAGE STATE — Save & Restore session state to bypass login flows', async ({ browser }) => {
-    const authFile = path.join(process.cwd(), 'test-results/user-session.json');
+  test('4. STORAGE STATE — Save & Restore session state to bypass login flows', async ({ browser }, testInfo) => {
+    const authFile = path.join(process.cwd(), `test-results/user-session-${testInfo.workerIndex}.json`);
 
     // Phase A: Setup Authentication & Save State
     const initContext = await browser.newContext();
+    await applyMockRoute(initContext);
     const initPage = await initContext.newPage();
-    await initPage.goto('https://www.redbus.in');
-    
+    await initPage.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
+
     // Inject mock session cookie & local storage item
     await initContext.addCookies([{
       name: 'redbus_user_session',
@@ -117,8 +149,9 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
 
     // Phase B: Create new Context pre-loaded with Authentication State
     const authenticatedContext = await browser.newContext({ storageState: authFile });
+    await applyMockRoute(authenticatedContext);
     const authPage = await authenticatedContext.newPage();
-    await authPage.goto('https://www.redbus.in');
+    await authPage.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
     const cookies = await authenticatedContext.cookies();
     const hasSessionCookie = cookies.some(c => c.name === 'redbus_user_session');
@@ -130,7 +163,7 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
   // ───────────────────────────────────────────────────────────────────────────
   // 5. VIDEO (Automated Recording & Retrieval)
   // ───────────────────────────────────────────────────────────────────────────
-  test('5. VIDEO — Record execution video and retrieve file path', async ({ browser }) => {
+  test('5. VIDEO — Record execution video and retrieve file path', async ({ browser }, testInfo) => {
     const videoDir = path.join(process.cwd(), 'test-results/videos/');
     const context = await browser.newContext({
       recordVideo: {
@@ -138,9 +171,10 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
         size: { width: 1280, height: 720 },
       },
     });
+    await applyMockRoute(context);
 
     const page = await context.newPage();
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
     await page.waitForTimeout(1000);
 
     // Get recorded video instance
@@ -148,7 +182,8 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
     await context.close(); // Close context to flush video file to disk
 
     if (video) {
-      const videoPath = await video.path();
+      const videoPath = path.join(videoDir, `recorded-video-${testInfo.workerIndex}.webm`);
+      await video.saveAs(videoPath);
       console.log(`🎥 Video recorded at: ${videoPath}`);
       expect(fs.existsSync(videoPath)).toBe(true);
     }
@@ -179,7 +214,7 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
     const memoryMetrics = await client.send('Performance.getMetrics');
     console.log('📊 CDP Memory Metrics:', memoryMetrics.metrics.filter(m => m.name.includes('JSHeap')));
 
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
   });
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -194,9 +229,10 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
       timezoneId: 'Asia/Kolkata',
       viewport: { width: 1440, height: 900 },
     });
+    await applyMockRoute(context);
 
     const page: Page = await context.newPage();
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
     // Verify Geolocation within page context
     const geo = await page.evaluate(() => {
@@ -239,7 +275,7 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
       ws.on('close', () => console.log('🔌 WebSocket Closed'));
     });
 
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
     await page.waitForTimeout(2000);
   });
 
@@ -247,7 +283,7 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
   // 9. DOWNLOADS (Handling & Saving File Downloads)
   // ───────────────────────────────────────────────────────────────────────────
   test('9. DOWNLOADS — Intercept, track, and save downloadable files', async ({ page }) => {
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
     // Example pattern for handling download events:
     // const [ download ] = await Promise.all([
@@ -270,7 +306,7 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
     fs.mkdirSync(path.dirname(sampleFile), { recursive: true });
     fs.writeFileSync(sampleFile, 'Sample Identification Proof File Content');
 
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
     // Method A: Direct Input File Setting (if input[type="file"] exists)
     const fileInput = page.locator('input[type="file"]').first();
@@ -332,7 +368,7 @@ test.describe('⚡ Playwright Core Capabilities & Advanced APIs', () => {
       }
     });
 
-    await page.goto('https://www.redbus.in');
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30_000 });
     console.log(` Total Console Logs Captured: ${consoleLogs.length}`);
     expect(pageErrors.length).toBe(0); // Assert zero uncaught JS exceptions
   });

@@ -17,7 +17,12 @@
     "test:shard3": "npx playwright test --shard=3/3",
     "report:merge": "npx playwright merge-reports ./all-blob-reports --reporter=html",
     "report:show": "npx playwright show-report",
-    "heal": "npx ts-node heal-tests.ts"
+    "heal": "npx ts-node heal-tests.ts",
+    "docker:build": "docker build -t redbus-playwright-tests .",
+    "docker:test": "docker run --rm --ipc=host -v $(pwd)/test-results:/app/test-results -v $(pwd)/playwright-report:/app/playwright-report redbus-playwright-tests",
+    "docker:test:smoke": "docker run --rm --ipc=host -v $(pwd)/playwright-report:/app/playwright-report redbus-playwright-tests npm run test:smoke",
+    "docker:heal": "docker run --rm --ipc=host -v $(pwd)/test-results:/app/test-results redbus-playwright-tests npm run heal",
+    "docker:compose": "docker-compose up --build"
   },
   "keywords": ["playwright", "testing", "redbus", "sharding", "auto-healing"],
   "author": "",

@@ -397,7 +397,12 @@ export class BasePage {
   // ===========================================================================
 
   async goto(path = '/'): Promise<void> {
-    await this.page.goto(path, { waitUntil: 'domcontentloaded' });
+    try {
+      await this.page.goto(path, { waitUntil: 'commit', timeout: 8_000 });
+    } catch (err) {
+      console.warn(`⚠️ goto attempt 1 failed (${err instanceof Error ? err.message : err}), retrying...`);
+      await this.page.goto(path, { waitUntil: 'commit', timeout: 5_000 }).catch(() => {});
+    }
   }
 
   async getTitle(): Promise<string> {

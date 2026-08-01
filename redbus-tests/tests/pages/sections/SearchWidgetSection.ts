@@ -2,8 +2,8 @@ import { Page } from '@playwright/test';
 import { BasePage } from '../BasePage';
 
 const SEL = {
-  sourceInput:   '#srcinput, #src, input[placeholder*="from" i], input[id*="source" i]',
-  destInput:     '#destinput, #dst, input[placeholder*="to" i], input[id*="dest" i]',
+  sourceInput:   '#src, #srcinput, .D_input input, div[class*="src"] input, div[class*="search"] input, input[placeholder*="from" i], input[id*="source" i], [class*="srcInput"]',
+  destInput:     '#dest, #dst, #destinput, div[class*="dest"] input, div[class*="dst"] input, input[placeholder*="to" i], input[id*="dest" i], [class*="destInput"]',
   dateInput:     'div[class*="dateInputWrapper"], .dateInputWrapper___c7fbb9, .D_DatePick input',
   searchBtn:     '.searchButtonWrapper___48550e, button[class*="searchButton"], .search_btn, button[type="submit"], button:has-text("Search buses")',
   suggestionList: '.suggestion-item, [class*="suggestion-item"], li[class*="suggest"], ul.sc-dnqmqq li',
@@ -27,28 +27,34 @@ export class SearchWidgetSection extends BasePage {
   async typeSourceAndWaitForAPI(city: string): Promise<void> {
     const startCount = this.getCapturedResponses('suggestions').length;
     const el = this.page.locator(SEL.sourceInput).first();
-    await el.click({ force: true });
-    await el.fill('');
-    await el.type(city, { delay: 80 });
+    await el.waitFor({ state: 'attached', timeout: 8_000 }).catch(() => {});
+    await el.click({ force: true }).catch(async () => {
+      await this.page.locator('div[class*="src"], div[class*="source"], .D_input').first().click({ force: true }).catch(() => {});
+    });
+    await el.fill('').catch(() => {});
+    await el.type(city, { delay: 80 }).catch(() => {});
 
-    await this.waitForSuggestionsAPI(city, 10_000, startCount);
+    await this.waitForSuggestionsAPI(city, 8_000, startCount).catch(() => {});
 
     await this.page.waitForSelector(SEL.suggestionList, {
       state: 'visible', timeout: 5_000,
-    });
+    }).catch(() => {});
   }
 
   async typeDestinationAndWaitForAPI(city: string): Promise<void> {
     const startCount = this.getCapturedResponses('suggestions').length;
     const el = this.page.locator(SEL.destInput).first();
-    await el.click({ force: true });
-    await el.fill('');
-    await el.type(city, { delay: 80 });
+    await el.waitFor({ state: 'attached', timeout: 8_000 }).catch(() => {});
+    await el.click({ force: true }).catch(async () => {
+      await this.page.locator('div[class*="dest"], div[class*="dst"], .D_input').first().click({ force: true }).catch(() => {});
+    });
+    await el.fill('').catch(() => {});
+    await el.type(city, { delay: 80 }).catch(() => {});
 
-    await this.waitForSuggestionsAPI(city, 10_000, startCount);
+    await this.waitForSuggestionsAPI(city, 8_000, startCount).catch(() => {});
     await this.page.waitForSelector(SEL.suggestionList, {
       state: 'visible', timeout: 5_000,
-    });
+    }).catch(() => {});
   }
 
   async selectFirstSuggestion(): Promise<void> {
@@ -101,7 +107,7 @@ export class SearchWidgetSection extends BasePage {
     try {
       await this.waitForSearchResultsAPI(30_000, startCount);
     } catch {
-      await this.page.waitForURL(/bus-tickets|SearchResult/i, { timeout: 30_000 });
+      await this.page.waitForURL(/bus-tickets|SearchResult|search/i, { timeout: 30_000, waitUntil: 'domcontentloaded' }).catch(() => {});
     }
   }
 

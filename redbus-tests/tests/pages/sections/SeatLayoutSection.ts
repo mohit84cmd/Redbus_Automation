@@ -20,12 +20,13 @@ export class SeatLayoutSection extends BasePage {
    * that opens the seat layout without forcing a mandatory login wall.
    */
   async clickViewSeatsForFirst(): Promise<void> {
-    const cards = await this.page.locator(SEL.busItem).all();
-    console.log(`🔍 Found ${cards.length} bus cards to attempt seat layout opening...`);
+    const busLocator = this.page.locator(SEL.busItem);
+    const count = await busLocator.count().catch(() => 0);
+    console.log(`🔍 Found ${count} bus cards to attempt seat layout opening...`);
     
     // Try first 10 buses in the list
-    for (let i = 0; i < Math.min(cards.length, 10); i++) {
-      const card = cards[i];
+    for (let i = 0; i < Math.min(count, 10); i++) {
+      const card = busLocator.nth(i);
       const viewSeatsBtn = card.locator(SEL.viewSeatsBtn).first();
       
       if (await viewSeatsBtn.isVisible().catch(() => false)) {
