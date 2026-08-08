@@ -66,7 +66,6 @@ export default defineConfig({
     // Browser Flags for Memory & Resource Efficiency
     launchOptions: {
       args: [
-        '--disable-http2',
         '--disable-blink-features=AutomationControlled',
         '--disable-dev-shm-usage', // Overcome limited shared memory space in Docker/CI
         '--no-sandbox',

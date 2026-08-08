@@ -3,7 +3,7 @@
 // Responsive Mobile Specs – Verify layout, styling, and navigation on mobile devices
 // =============================================================================
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/baseTest';
 import { HomePage }     from '../pages/HomePage';
 import { logger }         from '../utils/helpers';
 

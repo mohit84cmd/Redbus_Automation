@@ -48,7 +48,16 @@ export class MockApiManager {
   static async injectOfflineHTMLMock(target: Page | BrowserContext): Promise<void> {
     await target.route('**/*', async (route: Route) => {
       const url = route.request().url();
-      if (url.includes('bus-tickets')) {
+      const resourceType = route.request().resourceType();
+
+      if (resourceType === 'image' || url.endsWith('.png') || url.endsWith('.jpg') || url.endsWith('.ico') || url.endsWith('.svg')) {
+        // Transparent 1x1 PNG pixel
+        const transparentPng = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'base64'
+        );
+        await route.fulfill({ status: 200, contentType: 'image/png', body: transparentPng });
+      } else if (url.includes('bus-tickets')) {
         await route.fulfill({
           status: 200,
           contentType: 'text/html',
@@ -91,10 +100,15 @@ export class MockApiManager {
 <html>
 <head>
   <title>Book Bus Tickets Online - RedBus</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Book Bus Tickets online with RedBus. Find bus schedules, ticket prices, top operators and discounts across India.">
+  <style>
+    @media (min-width: 769px) { .search-widget { display: flex !important; flex-direction: row !important; gap: 10px !important; } }
+    @media (max-width: 768px) { .search-widget { display: flex !important; flex-direction: column !important; gap: 10px !important; } }
+  </style>
 </head>
 <body>
-  <header class="rb-header">
+  <header class="rb-header" style="display:block; min-height:50px; background:#d84e55;">
     <a class="rb_logo" href="/">RedBus</a>
     <div id="account_dd" aria-label="Account">Account</div>
     <div class="login-option">Login/Sign up</div>
@@ -102,14 +116,14 @@ export class MockApiManager {
   </header>
   <main>
     <h1>Book Bus Tickets Online</h1>
-    <form class="search-widget" action="/bus-tickets" method="get" style="display:flex; flex-direction:column; gap:10px;">
-      <input id="src" name="from" placeholder="From" aria-label="Source City" role="combobox" style="display:block; width:100%; min-height:40px;" />
-      <input id="dest" name="to" placeholder="To" aria-label="Destination City" role="combobox" style="display:block; width:100%; min-height:40px;" />
+    <form class="search-widget" action="/bus-tickets" method="get">
+      <input id="src" name="from" placeholder="From" aria-label="Source City" role="combobox" style="display:block; min-height:40px;" />
+      <input id="dest" name="to" placeholder="To" aria-label="Destination City" role="combobox" style="display:block; min-height:40px;" />
       <button id="search_button" type="submit" aria-label="Search Buses" style="display:block; min-height:40px;">Search buses</button>
     </form>
     <section class="offers-section"><h2>Offers</h2></section>
   </main>
-  <footer class="rb-footer">RedBus Footer</footer>
+  <footer class="rb-footer" style="display:block; min-height:100px; background:#1c2238;">RedBus Footer</footer>
 </body>
 </html>`,
         });

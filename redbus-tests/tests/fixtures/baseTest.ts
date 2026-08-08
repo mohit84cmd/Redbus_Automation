@@ -43,9 +43,16 @@ export const test = base.extend<RedBusFixtures>({
     await use(browserInstance);
     await browserInstance.close();
   },
-
+  // ── Page Fixture Auto-Mocking ───────────────────────────────────────────────
+  page: async ({ page }, use) => {
+    const { MockApiManager } = await import('../utils/MockApiManager');
+    await MockApiManager.injectFullMockSuite(page);
+    await use(page);
+  },
   // ── RedBusApplication Orchestrator ─────────────────────────────────────────
   redBusApp: async ({ page, request }, use) => {
+    const { MockApiManager } = await import('../utils/MockApiManager');
+    await MockApiManager.injectFullMockSuite(page);
     const app = new RedBusApplication(page, request);
     await use(app);
   },

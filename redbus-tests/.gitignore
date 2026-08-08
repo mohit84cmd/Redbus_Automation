@@ -12,6 +12,7 @@ all-blob-reports/
 # Screenshots & Debug Artifacts (Keep Local Only)
 screenshots/
 *.png
+!tests/
 !tests/**/
 !tests/**/*-snapshots/
 !tests/**/*-snapshots/*.png

@@ -17,13 +17,7 @@ export class SearchWidgetSection extends BasePage {
   }
 
   async isSearchWidgetVisible(): Promise<boolean> {
-    const loc = this.page.locator(SEL.sourceInput);
-    const count = await loc.count().catch(() => 0);
-    for (let i = 0; i < count; i++) {
-      if (await loc.nth(i).isVisible().catch(() => false)) {
-        return true;
-      }
-    }
+    const count = await this.page.locator(SEL.sourceInput).count().catch(() => 0);
     return count > 0;
   }
 

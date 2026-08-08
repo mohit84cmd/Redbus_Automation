@@ -21,7 +21,6 @@ export class BrowserFactory {
           ...launchOptions,
           args: [
             ...(launchOptions.args || []),
-            '--disable-http2',              // Bypasses net::ERR_HTTP2_PROTOCOL_ERROR from Akamai WAF
             '--disable-blink-features=AutomationControlled',
             '--disable-dev-shm-usage',      // Prevents memory limits issues in Docker/CI
             '--disable-gpu',
